@@ -675,7 +675,7 @@ namespace RuntimeMaster
             }
             else if (runtime == "Visual C++ AIO")
             {
-                arguments = "/aiA";
+                arguments = "/ai";
             }
             else if (runtime == "WebView2 Runtime")
             {
