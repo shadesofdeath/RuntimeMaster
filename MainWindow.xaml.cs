@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Text.Json;
 
 namespace RuntimeMaster
 {
@@ -351,8 +352,8 @@ namespace RuntimeMaster
             }
         }},
 
-            {"XNA Framework", () => Task.FromResult(
-                "https://download.microsoft.com/download/A/C/2/AC2C903B-E6E8-42C2-9FD7-BEBAC362A930/xnafx40_redist.msi")},
+            {"XNA Framework 4.0", () => Task.FromResult(
+                "https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/xnafx40_redist.msi")},
 
             {"Java Runtime", async () => {
                 try {
@@ -372,44 +373,69 @@ namespace RuntimeMaster
                 }
             }},
 
+            {".NET Framework 4.8", () => Task.FromResult(
+                "https://download.visualstudio.microsoft.com/download/pr/2d6bb6b2-226a-4baa-bdec-798822606ff1/8494001c276a4b96804cde7829c04d7f/ndp48-x86-x64-allos-enu.exe")},
+
+            {".NET Framework 3.5", () => Task.FromResult("dism")},
+
             {"Visual C++ AIO", async () => {
-                try {
-                    _günlük.Bilgi("VC++ Redistributables için en son sürüm kontrol ediliyor...");
+            try {
+                _günlük.Bilgi("VC++ Redistributables için en son sürüm kontrol ediliyor...");
         
-                    // GitHub API için User-Agent header'ı ekliyoruz
-                    if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
-                    {
-                        _httpClient.DefaultRequestHeaders.Add("User-Agent", "RuntimeMaster");
-                    }
-
-                    // API'yi direkt olarak son release'in dosyalarına yönlendiriyoruz
-                    var downloadUrl = Environment.Is64BitOperatingSystem
-                        ? "https://github.com/abbodi1406/vcredist/releases/download/v0.85.0/VisualCppRedist_AIO_x86_x64.exe"
-                        : "https://github.com/abbodi1406/vcredist/releases/download/v0.85.0/VisualCppRedist_AIO_x86only.exe";
-
-                    // URL'nin geçerli olduğunu kontrol ediyoruz
-                    using (var request = new HttpRequestMessage(HttpMethod.Head, downloadUrl))
-                    {
-                        var response = await _httpClient.SendAsync(request);
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            _günlük.Hata($"İndirme URL'si kontrol edilirken hata: {response.StatusCode}");
-                            throw new Exception($"İndirme URL'si geçersiz: {response.StatusCode}");
-                        }
-                    }
-
-                    _günlük.Bilgi($"VC++ Redistributables indirme linki bulundu: {downloadUrl}");
-                    return downloadUrl;
+                // GitHub API için User-Agent header'ı ekliyoruz
+                if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("User-Agent", "RuntimeMaster");
                 }
-                catch (Exception ex) {
-                    _günlük.Hata(ex, "VC++ Redistributables indirme linki alınırken hata oluştu");
-                    throw;
+
+                // GitHub API'den son sürümü al
+                var apiUrl = "https://api.github.com/repos/abbodi1406/vcredist/releases/latest";
+                var releaseInfo = await _httpClient.GetStringAsync(apiUrl);
+                var release = JsonSerializer.Deserialize<JsonElement>(releaseInfo);
+                var version = release.GetProperty("tag_name").GetString();
+                var assets = release.GetProperty("assets");
+        
+                // İşletim sistemine göre doğru dosyayı seç
+                string fileName = Environment.Is64BitOperatingSystem ? "VisualCppRedist_AIO_x86_x64.exe" : "VisualCppRedist_AIO_x86only.exe";
+                string downloadUrl = null;
+
+                foreach (var asset in assets.EnumerateArray())
+                {
+                    if (asset.GetProperty("name").GetString() == fileName)
+                    {
+                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                        break;
+                    }
                 }
-            }},
+
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    throw new Exception($"İndirme URL'si bulunamadı: {fileName}");
+                }
+
+                // URL'nin geçerli olduğunu kontrol ediyoruz
+                using (var request = new HttpRequestMessage(HttpMethod.Head, downloadUrl))
+                {
+                    var response = await _httpClient.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _günlük.Hata($"İndirme URL'si kontrol edilirken hata: {response.StatusCode}");
+                        throw new Exception($"İndirme URL'si geçersiz: {response.StatusCode}");
+                    }
+                }
+
+                _günlük.Bilgi($"VC++ Redistributables indirme linki bulundu: {downloadUrl}");
+                return downloadUrl;
+            }
+            catch (Exception ex) {
+                _günlük.Hata(ex, "VC++ Redistributables indirme linki alınırken hata oluştu");
+                throw;
+            }
+        }},
 
             {"WebView2 Runtime", () => Task.FromResult(Environment.Is64BitOperatingSystem ?
-                "https://go.microsoft.com/fwlink/?linkid=2124701" :
-                "https://go.microsoft.com/fwlink/?linkid=2099617")}
+                "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/91530f73-1202-471b-86a9-a3b1d9655560/MicrosoftEdgeWebView2RuntimeInstallerX64.exe" :
+                "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/c234a7e5-8ebb-49dc-b21c-880622eb365b/MicrosoftEdgeWebView2RuntimeInstallerX86.exe")}
         };
 
             _günlük.Bilgi("Runtime Yöneticisi başlatıldı");
@@ -566,10 +592,61 @@ namespace RuntimeMaster
                 return false;
             }
         }
+        private async Task InstallDotNetFramework35(IProgress<(string Status, int Progress)> progress)
+        {
+            try
+            {
+                _günlük.Bilgi(".NET Framework 3.5 DISM kurulumu başlatılıyor");
+                progress.Report((".NET Framework 3.5 Kuruluyor... (Bu işlem biraz zaman alabilir)", 0));
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "dism",
+                    Arguments = "/online /enable-feature /featurename:NetFx3 /all /norestart",
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    Verb = "runas"
+                };
+
+                using (var process = Process.Start(startInfo))
+                {
+                    if (process != null)
+                    {
+                        _günlük.Bilgi(".NET Framework 3.5 DISM işlemi başladı");
+                        progress.Report((".NET Framework 3.5 Kuruluyor...", 50));
+
+                        await Task.Run(() => process.WaitForExit());
+
+                        if (process.ExitCode != 0)
+                        {
+                            throw new Exception($".NET Framework 3.5 kurulumu başarısız oldu. (Çıkış kodu: {process.ExitCode})");
+                        }
+
+                        progress.Report((".NET Framework 3.5 Kurulum Tamamlandı", 100));
+                        _günlük.Bilgi(".NET Framework 3.5 kurulumu başarıyla tamamlandı");
+                    }
+                    else
+                    {
+                        throw new Exception(".NET Framework 3.5 kurulum işlemi başlatılamadı.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _günlük.Hata(".NET Framework 3.5 kurulum işlemi başarısız oldu", ex);
+                throw;
+            }
+        }
+
         private async Task InstallRuntime(string runtime, string installerPath, IProgress<(string Status, int Progress)> progress)
         {
             try
             {
+                if (runtime == ".NET Framework 3.5")
+                {
+                    await InstallDotNetFramework35(progress);
+                    return;
+                }
                 if (runtime == "NVIDIA PhysX" && IsPhysXInstalled())
                 {
                     _günlük.Bilgi("PhysX zaten kurulu olduğu için kurulum atlanıyor");
@@ -593,12 +670,15 @@ namespace RuntimeMaster
                 _günlük.Bilgi($"{runtime} kurulumu başlatılıyor. Kurulum dosyası: {installerPath}");
                 progress.Report(($"{runtime} Kuruluyor... (Lütfen Bekleyiniz)", 0));
 
-                string arguments = GetInstallArguments(runtime);
+                bool isMsiFile = Path.GetExtension(installerPath).Equals(".msi", StringComparison.OrdinalIgnoreCase);
+                string fileName = isMsiFile ? "msiexec.exe" : installerPath;
+                string arguments = GetInstallArguments(runtime, installerPath, isMsiFile);
+
                 _günlük.Bilgi($"{runtime} kurulum parametreleri: {arguments}");
 
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = installerPath,
+                    FileName = fileName,
                     Arguments = arguments,
                     UseShellExecute = true,
                     CreateNoWindow = true,
@@ -649,49 +729,42 @@ namespace RuntimeMaster
             catch (Exception ex)
             {
                 _günlük.Hata($"{runtime} kurulum işlemi başarısız oldu: {ex.Message}", ex);
-                throw; // Üst katmanda yakalanacak
+                throw;
             }
         }
-
-        private string GetInstallArguments(string runtime)
+        private string GetInstallArguments(string runtime, string installerPath, bool isMsiFile)
         {
-            string arguments = "/quiet";
-
-            if (runtime.Contains(".NET"))
+            if (isMsiFile)
             {
-                arguments = "/install /quiet /norestart";
-            }
-            else if (runtime == "DirectX Runtime")
-            {
-                arguments = "";
-            }
-            else if (runtime == "OpenAL")
-            {
-                arguments = "/SILENT";
-            }
-            else if (runtime == "NVIDIA PhysX")
-            {
-                arguments = "/s /v\"/qn REBOOT=ReallySuppress\"";
-            }
-            else if (runtime == "Visual C++ AIO")
-            {
-                arguments = "/ai";
-            }
-            else if (runtime == "WebView2 Runtime")
-            {
-                arguments = "/silent /install";
-            }
-            else if (runtime == "XNA Framework")
-            {
-                arguments = "/quiet /norestart";
-            }
-            else if (runtime == "Java Runtime")
-            {
-                arguments = "/s";
+                // MSI dosyaları için temel parametreler
+                string msiArgs = $"/i \"{installerPath}\" /qn /norestart ALLUSERS=1";
+                return msiArgs;
             }
 
-            _günlük.Bilgi($"{runtime} için kurulum parametreleri: {arguments}");
-            return arguments;
+            // Normal exe dosyaları için mevcut argümanları kullan
+            switch (runtime)
+            {
+                case var r when r.Contains(".NET"):
+                    return "/install /quiet /norestart";
+                case "DirectX Runtime":
+                    return "";
+                case "OpenAL":
+                    return "/SILENT";
+                case "NVIDIA PhysX":
+                    return "/s /v\"/qn REBOOT=ReallySuppress\"";
+                case "Visual C++ AIO":
+                    return "/ai";
+                case "WebView2 Runtime":
+                    return "/silent /install";
+                case ".NET Framework 4.8":
+                    return "AGREETOLICENSE=yes ACCEPTEULA=Yes /norestart /passive /qb";
+                case ".NET Framework 3.5":
+                    return "/online /enable-feature /featurename:NetFx3 /all /norestart";
+                case "Java Runtime":
+                    return "/s";
+                default:
+                    return "/quiet";
+            }
         }
 
         public void Dispose()
@@ -728,7 +801,7 @@ namespace RuntimeMaster
         private void PositionWindow()
         {
             var workingArea = SystemParameters.WorkArea;
-            Left = workingArea.Right - Width - 10;
+            Left = workingArea.Right - Width - 4;
             Top = workingArea.Bottom - Height - 10;
         }
         private async void InitializeAsync()

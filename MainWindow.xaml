@@ -45,7 +45,7 @@
                     x:Name="Baslik"
                     FontSize="13"
                     FontWeight="Bold"
-                    Text="AIO Runtimes 1.2 | ShadesOfDeath" />
+                    Text="Runtime Master 1.2 | ShadesOfDeath" />
                 <Grid>
                     <TextBlock
                         x:Name="InstallStatus"

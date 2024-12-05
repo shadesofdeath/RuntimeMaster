@@ -40,7 +40,7 @@
                 <CheckBox Margin="0,5" Content="DirectX Runtime" />
                 <CheckBox Margin="0,5" Content="OpenAL" />
                 <CheckBox Margin="0,5" Content="NVIDIA PhysX" />
-                <CheckBox Margin="0,5" Content="XNA Framework" />
+                <CheckBox Margin="0,5" Content="XNA Framework 4.0" />
                 <CheckBox Margin="0,5" Content="Java Runtime" />
                 <CheckBox Margin="0,5" Content="Visual C++ AIO" />
                 <CheckBox Margin="0,5" Content="WebView2 Runtime" />
