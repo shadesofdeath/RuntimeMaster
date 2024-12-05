@@ -1,0 +1,70 @@
+﻿<Window
+    x:Class="RuntimeMaster.RuntimeSelectionWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Runtime Seçimi"
+    Width="300"
+    Height="410"
+    Background="White"
+    BorderThickness="0"
+    FontFamily="SegoeUI"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    Topmost="True"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="ToolWindow">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Margin="10,8,10,2"
+            VerticalAlignment="Center"
+            FontSize="14"
+            FontWeight="Medium"
+            Text="Kurulacak Runtime'ları Seçin" />
+
+
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="10,2,10,0"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="CheckboxPanel" Margin="0,8,0,0">
+                <CheckBox Margin="0,5" Content=".NET 6.0 Runtime" />
+                <CheckBox Margin="0,5" Content=".NET 7.0 Runtime" />
+                <CheckBox Margin="0,5" Content=".NET 8.0 Runtime" />
+                <CheckBox Margin="0,5" Content="DirectX Runtime" />
+                <CheckBox Margin="0,5" Content="OpenAL" />
+                <CheckBox Margin="0,5" Content="NVIDIA PhysX" />
+                <CheckBox Margin="0,5" Content="XNA Framework" />
+                <CheckBox Margin="0,5" Content="Java Runtime" />
+                <CheckBox Margin="0,5" Content="Visual C++ AIO" />
+                <CheckBox Margin="0,5" Content="WebView2 Runtime" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,0,6,10"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="80"
+                Height="26"
+                Margin="0,0,10,0"
+                BorderThickness="0"
+                Click="CancelButton_Click"
+                Content="İptal" />
+            <Button
+                Width="80"
+                Height="26"
+                BorderThickness="0"
+                Click="InstallButton_Click"
+                Content="Kur" />
+        </StackPanel>
+    </Grid>
+</Window>
