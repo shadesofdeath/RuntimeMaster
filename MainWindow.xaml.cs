@@ -19,7 +19,7 @@ namespace RuntimeMaster
 
         public GünlükKaydı(string logPath)
         {
-            _logDizini = Path.Combine(logPath, "RuntimeMaster_Günlükler");
+            _logDizini = Path.Combine(logPath, "RuntimeMaster_Logs");
             Directory.CreateDirectory(_logDizini);
         }
 
@@ -50,7 +50,7 @@ namespace RuntimeMaster
 
         private void GünlükYaz(string seviye, string mesaj)
         {
-            string günlükDosyası = Path.Combine(_logDizini, $"RuntimeMaster_Günlük_{DateTime.Now:yyyy-MM-dd}.log");
+            string günlükDosyası = Path.Combine(_logDizini, $"RuntimeMaster_Log_{DateTime.Now:yyyy-MM-dd}.log");
             string günlükMesajı = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{seviye}] {mesaj}";
 
             lock (_kilit)
@@ -61,7 +61,7 @@ namespace RuntimeMaster
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Günlük kaydı başarısız: {ex.Message}");
+                    Debug.WriteLine($"Logging failed: {ex.Message}");
                 }
             }
         }
@@ -205,7 +205,7 @@ namespace RuntimeMaster
                 {
                     response.EnsureSuccessStatusCode();
                     var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                    _günlük.Bilgi($"{runtimeName} - İndirme başladı - Toplam Boyut: {totalBytes / 1024.0 / 1024.0:F2} MB");
+                    _günlük.Bilgi($"{runtimeName} - Download started - Total Size: {totalBytes / 1024.0 / 1024.0:F2} MB");
 
                     using (var contentStream = await response.Content.ReadAsStreamAsync())
                     using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
@@ -226,7 +226,7 @@ namespace RuntimeMaster
 
                                 try
                                 {
-                                    progress?.Report(($"{runtimeName} İndiriliyor... {progressPercentage}%", progressPercentage));
+                                    progress?.Report(($"{runtimeName} Downloading... {progressPercentage}%", progressPercentage));
                                 }
                                 catch (Exception ex)
                                 {
@@ -236,7 +236,7 @@ namespace RuntimeMaster
                                 if (progressPercentage % 25 == 0 && progressPercentage != lastLoggedPercentage)
                                 {
                                     lastLoggedPercentage = progressPercentage;
-                                    _günlük.Bilgi($"{runtimeName} - İndirme Durumu: %{progressPercentage}");
+                                    _günlük.Bilgi($"{runtimeName} - Download Status: %{progressPercentage}");
                                 }
                             }
                         }
@@ -244,7 +244,7 @@ namespace RuntimeMaster
                         await fileStream.FlushAsync();
                     }
                 }
-                _günlük.Bilgi($"{runtimeName} indirmesi tamamlandı");
+                _günlük.Bilgi($"{runtimeName} download completed");
             }
             catch (OperationCanceledException ex)
             {
@@ -491,7 +491,7 @@ namespace RuntimeMaster
                         int nextProgress = (currentRuntime * 100) / totalRuntimes;
                         int progressRange = nextProgress - baseProgress;
 
-                        _progress.Report(($"{runtime} indirme hazırlanıyor...", baseProgress));
+                        _progress.Report(($"{runtime} Preparing download...", baseProgress));
 
                         var downloadProgressWrapper = new Progress<(string Status, int Progress)>(p =>
                         {
@@ -617,7 +617,7 @@ namespace RuntimeMaster
             try
             {
                 _günlük.Bilgi(".NET Framework 3.5 kurulumu başlatılıyor");
-                progress.Report((".NET Framework 3.5 Kuruluyor...", 0));
+                progress.Report((".NET Framework 3.5 Installing...", 0));
 
                 var startInfo = new ProcessStartInfo
                 {
@@ -633,7 +633,7 @@ namespace RuntimeMaster
                     if (process != null)
                     {
                         _günlük.Bilgi(".NET Framework 3.5 DISM işlemi başladı");
-                        progress.Report((".NET Framework 3.5 Kuruluyor...", 50));
+                        progress.Report((".NET Framework 3.5 Installing...", 50));
 
                         await Task.Run(() => process.WaitForExit());
 
@@ -642,7 +642,7 @@ namespace RuntimeMaster
                             throw new Exception($".NET Framework 3.5 kurulumu başarısız oldu.");
                         }
 
-                        progress.Report((".NET Framework 3.5 Kurulum Tamamlandı", 100));
+                        progress.Report((".NET Framework 3.5 Installation Completed", 100));
                         _günlük.Bilgi(".NET Framework 3.5 kurulumu tamamlandı");
                     }
                     else
@@ -688,7 +688,7 @@ namespace RuntimeMaster
                 }
 
                 _günlük.Bilgi($"{runtime} kurulumu başlatılıyor. Kurulum dosyası: {installerPath}");
-                progress.Report(($"{runtime} Kuruluyor... (Lütfen Bekleyiniz)", 0));
+                progress.Report(($"{runtime} Installing... (Lütfen Bekleyiniz)", 0));
 
                 bool isMsiFile = Path.GetExtension(installerPath).Equals(".msi", StringComparison.OrdinalIgnoreCase);
                 string fileName = isMsiFile ? "msiexec.exe" : installerPath;
@@ -710,7 +710,7 @@ namespace RuntimeMaster
                     if (process != null)
                     {
                         _günlük.Bilgi($"{runtime} kurulum işlemi başladı. İşlem ID: {process.Id}");
-                        progress.Report(($"{runtime} Kuruluyor...", 50));
+                        progress.Report(($"{runtime} Installing...", 50));
 
                         await Task.Run(() => process.WaitForExit());
                         progress.Report(($"{runtime} Kurulum Tamamlanıyor...", 90));
@@ -743,7 +743,7 @@ namespace RuntimeMaster
                     _günlük.Uyarı($"{runtime} kurulum dosyası silinirken hata: {ex.Message}");
                 }
 
-                progress.Report(($"{runtime} Kurulum Tamamlandı", 100));
+                progress.Report(($"{runtime} Installation Completed", 100));
                 _günlük.Bilgi($"{runtime} kurulumu başarıyla tamamlandı");
             }
             catch (Exception ex)
@@ -831,7 +831,7 @@ namespace RuntimeMaster
         {
             InitializeComponent();
             ApplySystemTheme();
-            this.Hide(); // Hide main window initially
+            this.Hide();
             InitializeAsync();
         }
         private void ApplySystemTheme()
@@ -898,7 +898,7 @@ namespace RuntimeMaster
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Başlatma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Initialisation error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }
@@ -914,13 +914,13 @@ namespace RuntimeMaster
                 await _runtimeManager.DownloadAndInstallRuntimes(selectedRuntimes);
 
                 // Installation completed
-                InstallStatus.Text = "Kurulum Tamamlandı!";
+                InstallStatus.Text = "Installation Completed!";
                 await Task.Delay(2000); // Show completion message for 2 seconds
                 Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Kurulum hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Installing error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }
