@@ -1,16 +1,14 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.IO;
-using HtmlAgilityPack;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using HtmlAgilityPack;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Windows.Threading;
+using System.IO;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Text.Json;
+using System.Windows.Threading;
 
 namespace RuntimeMaster
 {
@@ -310,9 +308,9 @@ namespace RuntimeMaster
                 "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe" :
                 "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x86.exe")},
 
-            {"DirectX Runtime", () => Task.FromResult("https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/directx.exe")},
+            {"DirectX Runtime", () => Task.FromResult("https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/other/directx.exe")},
 
-            {"OpenAL", () => Task.FromResult("https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/oalinst.exe")},
+            {"OpenAL", () => Task.FromResult("https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/other/oalinst.exe")},
 
             {"NVIDIA PhysX", async () => {
             try {
@@ -353,25 +351,46 @@ namespace RuntimeMaster
         }},
 
             {"XNA Framework 4.0", () => Task.FromResult(
-                "https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/xnafx40_redist.msi")},
+                "https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/other/xnafx40_redist.msi")},
 
             {"Java Runtime", async () => {
-                try {
-                    _günlük.Bilgi("Java Runtime için en son sürüm kontrol ediliyor...");
-                    var web = new HtmlWeb();
-                    var doc = await web.LoadFromWebAsync("https://www.java.com/en/download/manual.jsp");
-                    var downloadLink = Environment.Is64BitOperatingSystem ?
-                        doc.DocumentNode.SelectSingleNode("//a[contains(@title, 'Windows (64-bit)')]")?.GetAttributeValue("href", "") :
-                        doc.DocumentNode.SelectSingleNode("//a[contains(@title, 'Windows Offline')]")?.GetAttributeValue("href", "");
-                    if (string.IsNullOrEmpty(downloadLink))
-                        throw new Exception("Java Runtime indirme linki bulunamadı");
-                    return downloadLink;
+            try {
+                _günlük.Bilgi("Stealth API üzerinden Java sürüm bilgileri alınıyor...");
+                var client = new HttpClient();
+                var response = await client.GetAsync("https://stealthpuppy.com/apptracker/apps/o/oraclejava8/");
+                var html = await response.Content.ReadAsStringAsync();
+
+                var doc = new HtmlAgilityPack.HtmlDocument();
+                doc.LoadHtml(html);
+
+                var rows = doc.DocumentNode.SelectNodes("//table/tbody/tr");
+                string x64Link = null;
+                string x86Link = null;
+
+                foreach (var row in rows)
+                {
+                    var arch = row.SelectSingleNode(".//td[2]")?.InnerText;
+                    var link = row.SelectSingleNode(".//td[4]/a")?.GetAttributeValue("href", "");
+
+                    if (arch == "x64") x64Link = link;
+                    if (arch == "x86") x86Link = link;
                 }
-                catch (Exception ex) {
-                    _günlük.Hata(ex, "Java Runtime indirme linki alınırken hata oluştu");
-                    throw;
-                }
-            }},
+
+                var downloadLink = Environment.Is64BitOperatingSystem ? x64Link : x86Link;
+
+                if (string.IsNullOrEmpty(downloadLink))
+                    throw new Exception("Java indirme linki bulunamadı");
+
+                _günlük.Bilgi($"Java indirme linki bulundu: {downloadLink}");
+                return downloadLink;
+            }
+            catch (Exception ex) {
+                _günlük.Hata(ex, "Java Runtime indirme linki alınamadı");
+                throw;
+            }
+        }},
+            {"MSXML 4.0", () => Task.FromResult(
+                "https://github.com/shadesofdeath/RuntimeMaster/raw/refs/heads/main/other/msxml.msi")},
 
             {".NET Framework 4.8", () => Task.FromResult(
                 "https://download.visualstudio.microsoft.com/download/pr/2d6bb6b2-226a-4baa-bdec-798822606ff1/8494001c276a4b96804cde7829c04d7f/ndp48-x86-x64-allos-enu.exe")},
@@ -431,12 +450,13 @@ namespace RuntimeMaster
                 _günlük.Hata(ex, "VC++ Redistributables indirme linki alınırken hata oluştu");
                 throw;
             }
-        }},
+            }},
 
-            {"WebView2 Runtime", () => Task.FromResult(Environment.Is64BitOperatingSystem ?
-                "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/91530f73-1202-471b-86a9-a3b1d9655560/MicrosoftEdgeWebView2RuntimeInstallerX64.exe" :
-                "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/c234a7e5-8ebb-49dc-b21c-880622eb365b/MicrosoftEdgeWebView2RuntimeInstallerX86.exe")}
-        };
+                {"WebView2 Runtime", () => Task.FromResult(Environment.Is64BitOperatingSystem ?
+                    "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/91530f73-1202-471b-86a9-a3b1d9655560/MicrosoftEdgeWebView2RuntimeInstallerX64.exe" :
+                    "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/c234a7e5-8ebb-49dc-b21c-880622eb365b/MicrosoftEdgeWebView2RuntimeInstallerX86.exe")}
+            };
+
 
             _günlük.Bilgi("Runtime Yöneticisi başlatıldı");
             _günlük.Bilgi($"İndirme dizini: {downloadPath}");
@@ -596,8 +616,8 @@ namespace RuntimeMaster
         {
             try
             {
-                _günlük.Bilgi(".NET Framework 3.5 DISM kurulumu başlatılıyor");
-                progress.Report((".NET Framework 3.5 Kuruluyor... (Bu işlem biraz zaman alabilir)", 0));
+                _günlük.Bilgi(".NET Framework 3.5 kurulumu başlatılıyor");
+                progress.Report((".NET Framework 3.5 Kuruluyor...", 0));
 
                 var startInfo = new ProcessStartInfo
                 {
@@ -619,11 +639,11 @@ namespace RuntimeMaster
 
                         if (process.ExitCode != 0)
                         {
-                            throw new Exception($".NET Framework 3.5 kurulumu başarısız oldu. (Çıkış kodu: {process.ExitCode})");
+                            throw new Exception($".NET Framework 3.5 kurulumu başarısız oldu.");
                         }
 
                         progress.Report((".NET Framework 3.5 Kurulum Tamamlandı", 100));
-                        _günlük.Bilgi(".NET Framework 3.5 kurulumu başarıyla tamamlandı");
+                        _günlük.Bilgi(".NET Framework 3.5 kurulumu tamamlandı");
                     }
                     else
                     {
@@ -672,7 +692,7 @@ namespace RuntimeMaster
 
                 bool isMsiFile = Path.GetExtension(installerPath).Equals(".msi", StringComparison.OrdinalIgnoreCase);
                 string fileName = isMsiFile ? "msiexec.exe" : installerPath;
-                string arguments = GetInstallArguments(runtime, installerPath, isMsiFile);
+                string arguments = await GetInstallArguments(runtime, installerPath, isMsiFile);
 
                 _günlük.Bilgi($"{runtime} kurulum parametreleri: {arguments}");
 
@@ -732,7 +752,7 @@ namespace RuntimeMaster
                 throw;
             }
         }
-        private string GetInstallArguments(string runtime, string installerPath, bool isMsiFile)
+        private async Task<string> GetInstallArguments(string runtime, string installerPath, bool isMsiFile)
         {
             if (isMsiFile)
             {
@@ -753,7 +773,22 @@ namespace RuntimeMaster
                 case "NVIDIA PhysX":
                     return "/s /v\"/qn REBOOT=ReallySuppress\"";
                 case "Visual C++ AIO":
-                    return "/ai";
+                    if (File.Exists(installerPath))
+                    {
+                        var process = Process.Start(new ProcessStartInfo
+                        {
+                            FileName = installerPath,
+                            Arguments = "/aiR /ai",
+                            UseShellExecute = true,
+                            CreateNoWindow = true,
+                            Verb = "runas"
+                        });
+                        if (process != null)
+                        {
+                            await Task.Run(() => process.WaitForExit());
+                        }
+                    }
+                    return "/aiR /ai";
                 case "WebView2 Runtime":
                     return "/silent /install";
                 case ".NET Framework 4.8":
@@ -795,14 +830,49 @@ namespace RuntimeMaster
         public MainWindow()
         {
             InitializeComponent();
+            ApplySystemTheme();
             this.Hide(); // Hide main window initially
             InitializeAsync();
+        }
+        private void ApplySystemTheme()
+        {
+            var registry = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+
+            if (registry != null)
+            {
+                var useLight = (int)registry.GetValue("SystemUsesLightTheme", 1) == 1;
+
+                var themeName = useLight ? "LightTheme" : "DarkTheme";
+                var theme = Application.Current.Resources[themeName] as ResourceDictionary;
+
+                if (theme != null)
+                {
+                    var currentThemeDict = Application.Current.Resources.MergedDictionaries[0];
+                    currentThemeDict.Clear();
+                    foreach (var key in theme.Keys)
+                    {
+                        currentThemeDict[key] = theme[key];
+                    }
+                }
+            }
+        }
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged += (s, args) =>
+            {
+                if (args.Category == Microsoft.Win32.UserPreferenceCategory.General)
+                {
+                    Dispatcher.Invoke(ApplySystemTheme);
+                }
+            };
         }
         private void PositionWindow()
         {
             var workingArea = SystemParameters.WorkArea;
             Left = workingArea.Right - Width - 4;
-            Top = workingArea.Bottom - Height - 10;
+            Top = workingArea.Bottom - Height - 6;
         }
         private async void InitializeAsync()
         {

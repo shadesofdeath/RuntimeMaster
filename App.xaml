@@ -2,7 +2,26 @@
     x:Class="RuntimeMaster.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:RuntimeMaster"
     StartupUri="MainWindow.xaml">
-    <Application.Resources />
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary>
+                    <!--  Light Theme Resources  -->
+                    <ResourceDictionary x:Key="LightTheme">
+                        <SolidColorBrush x:Key="WindowBackground" Color="White" />
+                        <SolidColorBrush x:Key="TextColor" Color="#0F1C2E" />
+                        <SolidColorBrush x:Key="BorderColor" Color="#0F1C2E" />
+                    </ResourceDictionary>
+
+                    <!--  Dark Theme Resources  -->
+                    <ResourceDictionary x:Key="DarkTheme">
+                        <SolidColorBrush x:Key="WindowBackground" Color="#2D2D2D" />
+                        <SolidColorBrush x:Key="TextColor" Color="White" />
+                        <SolidColorBrush x:Key="BorderColor" Color="White" />
+                    </ResourceDictionary>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

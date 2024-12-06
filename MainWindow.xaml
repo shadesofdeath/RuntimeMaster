@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:RuntimeMaster"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="MainWindow"
-    Width="300"
+    Width="330"
     Height="50"
     AllowsTransparency="True"
     Background="Transparent"
@@ -18,11 +18,9 @@
     Topmost="True"
     WindowStyle="None"
     mc:Ignorable="d">
-
     <Border
-        Background="White"
-        BorderBrush="#0F1C2E"
-        BorderThickness="0.5"
+        Background="{DynamicResource WindowBackground}"
+        BorderThickness="0"
         CornerRadius="4">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -45,20 +43,22 @@
                     x:Name="Baslik"
                     FontSize="13"
                     FontWeight="Bold"
-                    Text="Runtime Master 1.2 | ShadesOfDeath" />
+                    Foreground="{DynamicResource TextColor}"
+                    Text="Runtime Master 1.3 | ShadesOfDeath" />
                 <Grid>
                     <TextBlock
                         x:Name="InstallStatus"
                         FontSize="11"
                         FontWeight="Normal"
+                        Foreground="{DynamicResource TextColor}"
                         Text="Başlatılıyor..." />
                     <ProgressBar
                         x:Name="ProgressBar"
                         Height="2"
-                        Margin="0,14,10,0"
+                        Margin="0,16,10,0"
                         Background="Transparent"
                         BorderThickness="0"
-                        Foreground="#0F1C2E"
+                        Foreground="{DynamicResource BorderColor}"
                         Maximum="100"
                         Minimum="0"
                         Value="0" />
